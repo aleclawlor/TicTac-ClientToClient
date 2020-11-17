@@ -12,6 +12,7 @@ public class TicTacData implements Serializable{
 	boolean serverOdd; //odd or even
 	boolean gameEnd,serverWon=false, clientWon=false,draw=false;
 	boolean playAgain=true;
+	boolean triggerReplayPrompt = false;
 	
 	private List<Integer> oddRemain = new ArrayList<Integer>();
 	private List<Integer> evenRemain = new ArrayList<Integer>();
@@ -32,6 +33,14 @@ public class TicTacData implements Serializable{
 		this.serverWon=false;
 		this.clientWon=false;
 		this.draw=false;
+	}
+	
+	public void setReplayPrompt(Boolean prompt) {
+		triggerReplayPrompt = prompt;
+	}
+	
+	public Boolean getReplayPrompt() {
+		return triggerReplayPrompt;
 	}
 	
 	public gameBoard getBoard() {

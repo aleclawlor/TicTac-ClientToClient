@@ -15,6 +15,7 @@ public class serverThread implements Runnable {
 	Socket clientSocket1;
 	Socket clientSocket2;
 	String name;
+	int client1Wins = 0, client2Wins = 0;
 	int wins=0, losses=0, draws=0;
 	boolean inGame = true;
 
@@ -52,12 +53,13 @@ public class serverThread implements Runnable {
 				dataObject = new TicTacData(odd);
 				dataObject.setUserOdd(!odd);
 				
-				dataObject.setMessage("Welcome " + name + " to a Game of Tic Tac Toe.");
+				dataObject.setMessage("Welcome to a Game of Tic Tac Toe.");
 				if (odd) {// client1 goes first
 					sendFeedbackToClient(clientSocket1, dataObject);
 					dataObject = recieveGuessFromClient(clientSocket1); // get client1 initial move
 					System.out.println("First game, Client 1 is playing odd numbers");
 				}
+				
 				board = dataObject.getBoard();
 				System.out.println("First board looks like:");
 				board.printBoard();
@@ -80,28 +82,54 @@ public class serverThread implements Runnable {
 					board.printBoard();
 					//based on response from above receive
 					if (!inGame && dataObject.playAgain) { // game over & wants to play again
+						// client 2 has signalled they want to play again
+						// now check if client 1 wants to play again
+						
+						System.out.println("Server is here (line 88)");
+						
+						dataObject = recieveGuessFromClient(clientSocket1);
+						
+						if(dataObject.playAgain) {
+							System.out.println("Both users want to play again");
+						}
+						else {
+							System.out.println("Client 1 does not wish to play again");
+						}
+						
 						// switch to evens	
 						odd = !odd;
 						System.out.println("Player does want to play again. Client1 is odd (" + odd + ")");
 						break;
 					} else {
 						if (dataObject.playAgain == false) {
-							System.out.println("Player does not want to play again.");
+							System.out.println("Client 2 does not want to play again.");
+							
+							// tell Client 1 that Client 2 does not want to play again
+							
 							playAgain = false;
 							break;
 						}
 					}
 					
 					System.out.println("Server: keep playing.");
-					// did client move result in client win or draw?
+					// did client2 move result in client win or draw?
 					if (board.checkWin()) {
 						// client won
 						dataObject.clientWon = true;
 						dataObject.gameEnd = true;
 						inGame = false;
 						wins++;
-						dataObject.message = name + " WON! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws +  " Do you want to play again? enter y or n";
+						dataObject.message = "Client 2 won! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws +  " Do you want to play again? enter y or n";
 						System.out.println("Player won");
+						
+						odd = !odd;
+						
+						if(!usersWantToPlayAgain(clientSocket1, clientSocket2)) {
+							playAgain = false;
+						}
+						
+						break;
+						
 					} else if (board.boardFull()) {
 						// draw
 						dataObject.draw = true;
@@ -110,9 +138,18 @@ public class serverThread implements Runnable {
 						draws++;
 						dataObject.message = "Draw! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws + " Do you want to play again? enter y or n";
 						System.out.println("Client DRAW");
+						
+						odd = !odd;
+						
+						if(!usersWantToPlayAgain(clientSocket1, clientSocket2)) {
+							playAgain = false;
+						}
+						
+						break;
 
 					} else {
 						// game keeps going, get server move, send server move
+						dataObject.setUserOdd(!odd);
 						sendFeedbackToClient(clientSocket1, dataObject); // send board to client1
 						dataObject = recieveGuessFromClient(clientSocket1); // get client1 response
 						
@@ -122,8 +159,15 @@ public class serverThread implements Runnable {
 							dataObject.gameEnd = true;
 							inGame = false;
 							losses++;
-							dataObject.message = "CPU WON! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws +  " Do you want to play again? enter y or n";
+							dataObject.message = "Client 2 won! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws +  " Do you want to play again? enter y or n";
 							System.out.println("Server won");
+							odd = !odd;
+							
+							if(!usersWantToPlayAgain(clientSocket1, clientSocket2)) {
+								playAgain = false;
+							}
+							
+							break;
 						} else if (board.boardFull()) // check for draw with new move
 						{
 							dataObject.draw = true;
@@ -132,6 +176,14 @@ public class serverThread implements Runnable {
 							draws++;
 							dataObject.message = "Draw! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws + " Do you want to play again? enter y or n";
 							System.out.println("Server DRAW");
+							odd = !odd;
+							
+							if(!usersWantToPlayAgain(clientSocket1, clientSocket2)) {
+								playAgain = false;
+							}
+							
+							break;
+							
 						} else { // Neither win nor draw, so keep playing
 							System.out.println("Let's keep playing! ");
 							dataObject.setMessage("let's play some more");
@@ -141,12 +193,12 @@ public class serverThread implements Runnable {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				try {
-					sendFeedbackToClient(clientSocket1, dataObject);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} // send feedback to client
+//				try {
+////					sendFeedbackToClient(clientSocket1, dataObject);
+//				} catch (IOException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				} // send feedback to client
 			}//end of inner loop play the game
 
 		}//end of outer loop, play again
@@ -158,7 +210,36 @@ public class serverThread implements Runnable {
 			e.printStackTrace();
 		}
 	}
-
+	
+	public Boolean usersWantToPlayAgain(Socket client1, Socket client2) {
+		
+		dataObject.setMessage("Would you like to play again? ");
+//		dataObject.setReplayPrompt(true);
+		
+		Boolean client1WantsToPlay, client2WantsToPlay;
+		
+		// send to replay message to Client1 and Client2
+		try {
+			
+			sendFeedbackToClient(client1, dataObject);
+			dataObject = recieveGuessFromClient(client1);
+//			dataObject.setReplayPrompt(true);
+			dataObject.setMessage("Would you like to play again? ");
+//			
+			client1WantsToPlay = dataObject.playAgain;
+			
+			sendFeedbackToClient(client2, dataObject);
+			dataObject = recieveGuessFromClient(client2);
+			client2WantsToPlay = dataObject.playAgain;
+			
+			return (client1WantsToPlay && client2WantsToPlay); 
+			
+		} catch(IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
 	public static void sendFeedbackToClient(Socket clntSock, TicTacData toClient) throws IOException {
 		try {
 			OutputStream os = clntSock.getOutputStream();

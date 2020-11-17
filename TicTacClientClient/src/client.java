@@ -69,12 +69,32 @@ public class client {
 		dataObject= recieveFeedbackFromServer(socket); //first info from server
 		
 		while(playing){
+			
+			// if the server is asking the client if they want to play again, we bypass all the board stuff 
+			if(dataObject.getReplayPrompt()) {
+				
+				dataObject.printMessage();
+				String playAgain = fromKeyboard.nextLine();
+				
+				if (playAgain.toUpperCase().equals("Y")){
+					dataObject.playAgain = true;
+					dataObject.setMessage("Let's play again.");
+				} 
+				if (playAgain.toUpperCase().equals("N")){
+					dataObject.playAgain = false;
+					//tell server end
+					dataObject.setMessage("LET'S END THE GAME");
+					playing = false;
+				} 
+				
+			}
+			
 			dataObject.printMessage(); //first message from server
 			boolean serverOdd = dataObject.serverOdd;  //is the server odd or even? first odd=true, then odd=even, etc.
 			board = dataObject.getBoard();
-			board.printBoard();
+			
 			//check if opponent won, client won or there is a tie
-			if (dataObject.clientWon || dataObject.draw || dataObject.serverWon){
+			if (dataObject.clientWon || dataObject.draw || dataObject.serverWon || dataObject.triggerReplayPrompt){
 				//print out what server said and set new message
 				String again = fromKeyboard.nextLine(); // fromKeyboard.readLine();
 				
@@ -89,6 +109,8 @@ public class client {
 					playing = false;
 				} 
 			} else {
+				
+				board.printBoard();
 				
 				while(true) {
 					System.out.println("Please select a cell index in the Board from the list. Valid remaining cell numbers: ");
