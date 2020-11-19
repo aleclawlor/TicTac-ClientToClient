@@ -21,7 +21,7 @@ public class client {
 		Scanner fromKeyboard = new Scanner(System.in);
 		Socket socket = null;
 		String stringPort;
-		String server,msg="let's keep playing!";
+		String server, msg="let's keep playing!";
 		InetAddress serverAddress; // = InetAddress.getByName(args[0]); // real Server internet address
 		int servPort; // The port on which the server listens (as an int,this is what we want).
 		gameBoard board = null;
@@ -54,15 +54,6 @@ public class client {
 		socket = new Socket(serverAddress, servPort);  //data socket to server, this kicks off initial handshake
 		
 		TicTacData dataObject=null; 
-		// get name from user
-//		System.out.print("Please Enter your name: ");
-//		name = fromKeyboard.nextLine(); // fromKeyboard.readLine();
-
-//		// send name across to server
-//		dataObject = new TicTacData();
-//		dataObject.setName(name);
-//		dataObject.setMessage(msg);
-//		sendInfoToServer(socket, dataObject); // first to send name
 		
 		//get first response from server, which is the initial board
 		//and the servers's first move
@@ -86,7 +77,6 @@ public class client {
 					dataObject.setMessage("LET'S END THE GAME");
 					playing = false;
 				} 
-				
 			}
 			
 			dataObject.printMessage(); //first message from server
@@ -171,10 +161,10 @@ public class client {
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (EOFException e) { // needed to catch when client is done
-			System.out.println("in receive EOF: goodbye  " + name);
+			System.out.println("in receive EOF: goobye!");
 			clntSock.close(); // Close the socket. We are done with this client!
 		} catch (IOException e) {
-			System.out.println("in receive IO: goodbye " + name);
+			System.out.println("in receive IO: goodbye!");
 			clntSock.close(); // this requires the throws IOException
 		}
 		return fromServer;

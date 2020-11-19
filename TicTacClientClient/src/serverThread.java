@@ -15,8 +15,7 @@ public class serverThread implements Runnable {
 	Socket clientSocket1;
 	Socket clientSocket2;
 	String name;
-	int client1Wins = 0, client2Wins = 0;
-	int wins=0, losses=0, draws=0;
+	int client1Wins = 0, client2Wins = 0, draws=0;
 	boolean inGame = true;
 
 	public boolean playAgain = true;
@@ -63,7 +62,6 @@ public class serverThread implements Runnable {
 				board = dataObject.getBoard();
 				System.out.println("First board looks like:");
 				board.printBoard();
-//				sendFeedbackToClient(clientSocket2, dataObject); // send board to client2
 
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -73,81 +71,55 @@ public class serverThread implements Runnable {
 
 			// loop for single game
 			while (true) {
+				
 				try {
+					
 					dataObject.setUserOdd(odd);
 					sendFeedbackToClient(clientSocket2, dataObject); // send board to client2
 					dataObject = recieveGuessFromClient(clientSocket2); // get client2 response 		
 					System.out.println("From client2: " + dataObject.getMessage()); // client should send new message
 					board = dataObject.getBoard();
 					board.printBoard();
-					//based on response from above receive
-					if (!inGame && dataObject.playAgain) { // game over & wants to play again
-						// client 2 has signalled they want to play again
-						// now check if client 1 wants to play again
-						
-						System.out.println("Server is here (line 88)");
-						
-						dataObject = recieveGuessFromClient(clientSocket1);
-						
-						if(dataObject.playAgain) {
-							System.out.println("Both users want to play again");
-						}
-						else {
-							System.out.println("Client 1 does not wish to play again");
-						}
-						
-						// switch to evens	
-						odd = !odd;
-						System.out.println("Player does want to play again. Client1 is odd (" + odd + ")");
-						break;
-					} else {
-						if (dataObject.playAgain == false) {
-							System.out.println("Client 2 does not want to play again.");
-							
-							// tell Client 1 that Client 2 does not want to play again
-							
-							playAgain = false;
-							break;
-						}
-					}
 					
 					System.out.println("Server: keep playing.");
 					// did client2 move result in client win or draw?
 					if (board.checkWin()) {
-						// client won
+						// client2 won
 						dataObject.clientWon = true;
 						dataObject.gameEnd = true;
 						inGame = false;
-						wins++;
-						dataObject.message = "Client 2 won! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws +  " Do you want to play again? enter y or n";
-						System.out.println("Player won");
+						client2Wins++;
+						System.out.println("Client 2 won");
 						
 						odd = !odd;
 						
-						if(!usersWantToPlayAgain(clientSocket1, clientSocket2)) {
+						if(!usersWantToPlayAgain(clientSocket1, clientSocket2, "client2")) {
 							playAgain = false;
 						}
 						
 						break;
 						
-					} else if (board.boardFull()) {
+					} 
+					
+					else if (board.boardFull()) {
 						// draw
 						dataObject.draw = true;
 						dataObject.gameEnd = true;
 						inGame = false;
 						draws++;
-						dataObject.message = "Draw! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws + " Do you want to play again? enter y or n";
-						System.out.println("Client DRAW");
+						System.out.println("DRAW");
 						
 						odd = !odd;
 						
-						if(!usersWantToPlayAgain(clientSocket1, clientSocket2)) {
+						if(!usersWantToPlayAgain(clientSocket1, clientSocket2, "draw")) {
 							playAgain = false;
 						}
 						
 						break;
 
-					} else {
+					} 
+					
+					else {
 						// game keeps going, get server move, send server move
 						dataObject.setUserOdd(!odd);
 						sendFeedbackToClient(clientSocket1, dataObject); // send board to client1
@@ -158,33 +130,36 @@ public class serverThread implements Runnable {
 							dataObject.serverWon = true;
 							dataObject.gameEnd = true;
 							inGame = false;
-							losses++;
-							dataObject.message = "Client 2 won! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws +  " Do you want to play again? enter y or n";
-							System.out.println("Server won");
+							client1Wins++;
+							System.out.println("Client1 won");
 							odd = !odd;
 							
-							if(!usersWantToPlayAgain(clientSocket1, clientSocket2)) {
+							if(!usersWantToPlayAgain(clientSocket1, clientSocket2, "client1")) {
 								playAgain = false;
 							}
 							
 							break;
-						} else if (board.boardFull()) // check for draw with new move
+						} 
+						
+						else if (board.boardFull()) // check for draw with new move
 						{
 							dataObject.draw = true;
 							dataObject.gameEnd = true;
 							inGame = false;
 							draws++;
-							dataObject.message = "Draw! Your recored so far: wins=" + wins + " losses=" + losses + " draws=" + draws + " Do you want to play again? enter y or n";
-							System.out.println("Server DRAW");
+							System.out.println("DRAW");
 							odd = !odd;
 							
-							if(!usersWantToPlayAgain(clientSocket1, clientSocket2)) {
+							if(!usersWantToPlayAgain(clientSocket1, clientSocket2, "draw")) {
 								playAgain = false;
 							}
 							
 							break;
 							
-						} else { // Neither win nor draw, so keep playing
+						} 
+						
+						else { 
+							// Neither win nor draw, so keep playing
 							System.out.println("Let's keep playing! ");
 							dataObject.setMessage("let's play some more");
 							System.out.println("No one Won AND no DRAW");
@@ -193,16 +168,10 @@ public class serverThread implements Runnable {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-//				try {
-////					sendFeedbackToClient(clientSocket1, dataObject);
-//				} catch (IOException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				} // send feedback to client
 			}//end of inner loop play the game
 
 		}//end of outer loop, play again
-		System.out.println("Player " + name + " is gone. This thread will now termiante. But the main server is waiting for more clients!!!!");
+		System.out.println("Game has ended. This thread will now termiante. But the main server is waiting for more clients!!!!");
 		try {
 			clientSocket1.close();
 			clientSocket2.close();
@@ -211,24 +180,46 @@ public class serverThread implements Runnable {
 		}
 	}
 	
-	public Boolean usersWantToPlayAgain(Socket client1, Socket client2) {
-		
-		dataObject.setMessage("Would you like to play again? ");
-//		dataObject.setReplayPrompt(true);
-		
-		Boolean client1WantsToPlay, client2WantsToPlay;
+	public Boolean usersWantToPlayAgain(Socket client1, Socket client2, String winner) {
 		
 		// send to replay message to Client1 and Client2
 		try {
 			
-			sendFeedbackToClient(client1, dataObject);
-			dataObject = recieveGuessFromClient(client1);
-//			dataObject.setReplayPrompt(true);
 			dataObject.setMessage("Would you like to play again? ");
-//			
+			String client1Message = null;
+			String client2Message = null; 
+			Boolean client1WantsToPlay, client2WantsToPlay;
+			
+			// determine what message to send to each user 
+			if(winner == "draw") {
+				client1Message = "Game is a draw. Wins: " + client1Wins + " Losses: " + (client2Wins) + " Draws: " + draws +  "Would you like to play again? (y/n)";
+				client1Message = "Game is a draw. Wins: " + client2Wins + " Losses: " + (client1Wins) + " Draws: " + draws +  "Would you like to play again? (y/n)";
+			}
+			
+			else if(winner == "client1") { 
+				client1Message = "You win the game! Wins: " + client1Wins + " Losses: " + (client2Wins) + " Draws: " + draws + "\nWould you like to play again? (y/n)";
+				client2Message = "Your oppenent won the game... Wins: " + client2Wins + " Losses: " + (client2Wins) + " Draws: " + draws + "\nWould you like to play again? (y/n)";
+			}
+			
+			else if(winner == "client2") {
+				client2Message = "You win the game! Wins: " + client2Wins + " Losses: " + (client1Wins) + " Draws: " + draws + "\nWould you like to play again? (y/n)";
+				client1Message = "Your oppenent won the game... Wins: " + client1Wins + " Losses: " + (client2Wins) + " Draws: " + draws + "\nWould you like to play again? (y/n)";
+			}
+			
+			// send game replay prompt to client 1 and client 2
+			
+			dataObject.setMessage(client1Message);
+			sendFeedbackToClient(client1, dataObject);
+			
+			dataObject.setMessage(client2Message);
+			sendFeedbackToClient(client2, dataObject);
+			
+			// receive response from client1
+			dataObject = recieveGuessFromClient(client1);
 			client1WantsToPlay = dataObject.playAgain;
 			
-			sendFeedbackToClient(client2, dataObject);
+			
+			// receive response from client2
 			dataObject = recieveGuessFromClient(client2);
 			client2WantsToPlay = dataObject.playAgain;
 			
